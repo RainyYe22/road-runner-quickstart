@@ -11,21 +11,16 @@ import org.firstinspires.ftc.teamcode.subsystems.vision.vision_imu;
 @Autonomous(name = "autonomous_blue")
 public class autonomous_blue extends LinearOpMode {
 
-    private MecanumDrive drive;
-    private vision_imu turret;
-    private DcMotor intakeOne, intakeTwo;
-    private DcMotor launcher;
-
     @Override
     public void runOpMode() throws InterruptedException {
 
-        drive = new MecanumDrive(hardwareMap, field_constants.blue_left);  // start pose
-        turret = new vision_imu(hardwareMap);
+        MecanumDrive drive = new MecanumDrive(hardwareMap, field_constants.blue_left);  // start pose
+        vision_imu turret = new vision_imu(hardwareMap);
 
-        intakeOne = hardwareMap.get(DcMotor.class, "intakeOneMotor");
-        intakeTwo = hardwareMap.get(DcMotor.class, "intakeTwoMotor");
+        DcMotor intakeOne = hardwareMap.get(DcMotor.class, "intakeOneMotor");
+        DcMotor intakeTwo = hardwareMap.get(DcMotor.class, "intakeTwoMotor");
 
-        launcher = hardwareMap.get(DcMotor.class, "launcherMotor");
+        DcMotor launcher = hardwareMap.get(DcMotor.class, "launcherMotor");
 
 
         waitForStart();
@@ -53,7 +48,7 @@ public class autonomous_blue extends LinearOpMode {
                 field_constants.BLUE_GOAL_CENTER.y - field_constants.blue_intake.position.y,
                 field_constants.BLUE_GOAL_CENTER.x - field_constants.blue_intake.position.x
         ));
-        sleep(500); 
+        sleep(500);
 
 
         launcher.setPower(1);
