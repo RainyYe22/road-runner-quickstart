@@ -2,115 +2,97 @@ package org.firstinspires.ftc.teamcode.opmodes.autos;
 
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.*;
 import com.qualcomm.robotcore.hardware.*;
-import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.hardware.limelightvision.Limelight3A;
-import com.qualcomm.hardware.limelightvision.LLResult;
-import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.subsystems.field_constants;
 
-@Autonomous(name = "auto_bluefront", group = "Auto")
-public class auto_bluefront extends LinearOpMode {
+@Autonomous(name = "auto_bluefront2", group = "Auto")
+public class auto_bluefront2 extends LinearOpMode {
 
+    // Drive motors
     DcMotorEx leftFront, leftBack, rightBack, rightFront;
     IMU imu;
-    Limelight3A limelight;
+
+    // Pose of the robot (x, y in inches, heading in radians)
     Pose2d pose;
 
+    // PID-ish constants
     static final double DRIVE_P = 0.05;
     static final double STRAFE_P = 0.05;
     static final double TURN_P = 1.5;
 
-    static final double IN_PER_MM = 1.0 / 25.4;
+    // encoder to inch conversion (example, adjust to your hardware)
+    static final double ENC_IN_PER_TICK = 1.0 / 1000.0; // placeholder, adjust
+
+    // previous encoder positions
+    int lastLeftFront = 0, lastLeftBack = 0, lastRightFront = 0, lastRightBack = 0;
 
     @Override
-    public void runOpMode() throws InterruptedException {
+    public void runOpMode() {
 
-        leftFront  = hardwareMap.get(DcMotorEx.class, "lf");
-        leftBack   = hardwareMap.get(DcMotorEx.class, "lb");
-        rightBack  = hardwareMap.get(DcMotorEx.class, "rb");
-        rightFront = hardwareMap.get(DcMotorEx.class, "rf");
+        //hardware
+        leftFront  = hardwareMap.get(DcMotorEx.class, "FL");
+        leftBack   = hardwareMap.get(DcMotorEx.class, "BL");
+        rightBack  = hardwareMap.get(DcMotorEx.class, "BR");
+        rightFront = hardwareMap.get(DcMotorEx.class, "FR");
 
         leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        // IMU
+        leftFront.setDirection(DcMotor.Direction.REVERSE);
+        leftBack.setDirection(DcMotor.Direction.REVERSE);
+
+
+        // IMU init
         imu = hardwareMap.get(IMU.class, "imu");
         imu.initialize(new IMU.Parameters(
                 new RevHubOrientationOnRobot(
-                        RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                        RevHubOrientationOnRobot.UsbFacingDirection.FORWARD
+                        RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,
+                        RevHubOrientationOnRobot.UsbFacingDirection.UP
                 )
         ));
 
-        // Limelight
-        limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.pipelineSwitch(0);
-        limelight.start();
-
-        // Starting pose
         pose = field_constants.FRONT_BLUE_START;
 
         waitForStart();
         if (isStopRequested()) return;
 
-        // Drive sequence
         driveTo(field_constants.BLUE_BALL_LOCATIONS[0]);
         driveTo(field_constants.LEVER);
         driveTo(field_constants.BLUE_BALL_LOCATIONS[1]);
         driveTo(field_constants.BACK_BLUE_START);
 
         stopDrive();
-        limelight.stop();
     }
 
-    // Drive to target pose using Limelight distance + IMU heading
-    private void driveTo(Pose2d target) {
-        ElapsedTime timeout = new ElapsedTime();
-        timeout.reset();
 
+    private void driveTo(Pose2d target) {
         while (opModeIsActive()) {
 
-            updatePoseFromIMU(); // heading only
+            updatePoseFromEncodersAndIMU(); // approximate X/Y + heading
 
-            // Compute lateral & rotation errors
             Vector2d error = target.position.minus(pose.position);
             double headingError = angleWrap(target.heading.toDouble() - pose.heading.toDouble());
 
-            // Forward/backward: use Limelight distance if available
-            double forwardError = error.x; // default
-            LLResult result = limelight.getLatestResult();
-            if (result != null && result.isValid() && !result.getFiducialResults().isEmpty()) {
-                try {
-                    LLResultTypes.FiducialResult tag = result.getFiducialResults().get(0);
-                    double xMm = Math.abs(tag.getCameraPoseTargetSpace().getPosition().x);
-                    double zMm = Math.abs(tag.getCameraPoseTargetSpace().getPosition().z);
-                    double distIn = Math.hypot(xMm, zMm) * IN_PER_MM;
-                    forwardError = distIn - Math.hypot(error.x, error.y); // distance to target
-                } catch (Exception ignored) {}
-            }
-
-            // Stop condition
+            // stop condition
             if (error.norm() < 1.5 && Math.abs(headingError) < Math.toRadians(5))
                 break;
 
-            double forward = forwardError * DRIVE_P;
+            double forward = error.x * DRIVE_P;
             double strafe  = error.y * STRAFE_P;
             double turn    = headingError * TURN_P;
 
             setDrivePowers(forward, strafe, turn);
 
-            telemetry.addData("Pose X", pose.position.x);
-            telemetry.addData("Pose Y", pose.position.y);
-            telemetry.addData("Heading", Math.toDegrees(pose.heading.toDouble()));
-            telemetry.addData("ForwardErr", forwardError);
+            telemetry.addData("X", pose.position.x);
+            telemetry.addData("Y", pose.position.y);
+            telemetry.addData("H", Math.toDegrees(pose.heading.toDouble()));
             telemetry.update();
         }
 
@@ -119,6 +101,7 @@ public class auto_bluefront extends LinearOpMode {
     }
 
     private void setDrivePowers(double forward, double strafe, double turn) {
+
         double lf = forward + strafe + turn;
         double lb = forward - strafe + turn;
         double rb = forward + strafe - turn;
@@ -142,13 +125,41 @@ public class auto_bluefront extends LinearOpMode {
         rightFront.setPower(0);
     }
 
-    private void updatePoseFromIMU() {
+    private void updatePoseFromEncodersAndIMU() {
+
+        int currLF = leftFront.getCurrentPosition();
+        int currLB = leftBack.getCurrentPosition();
+        int currRF = rightFront.getCurrentPosition();
+        int currRB = rightBack.getCurrentPosition();
+
+        // change in encoder ticks
+        double dLF = (currLF - lastLeftFront) * ENC_IN_PER_TICK;
+        double dLB = (currLB - lastLeftBack)  * ENC_IN_PER_TICK;
+        double dRF = (currRF - lastRightFront) * ENC_IN_PER_TICK;
+        double dRB = (currRB - lastRightBack) * ENC_IN_PER_TICK;
+
+        lastLeftFront  = currLF;
+        lastLeftBack   = currLB;
+        lastRightFront = currRF;
+        lastRightBack  = currRB;
+
+        // Mecanum forward/strafe calculation
+        double forward = (dLF + dLB + dRF + dRB)/4.0;
+        double strafe  = (-dLF + dLB + dRF - dRB)/4.0;
+
+        // IMU heading
         YawPitchRollAngles angles = imu.getRobotYawPitchRollAngles();
+        double heading = angles.getYaw(AngleUnit.RADIANS);
+
+        // rotate forward/strafe by heading
+        double cosH = Math.cos(heading);
+        double sinH = Math.sin(heading);
+        double dx = forward * cosH - strafe * sinH;
+        double dy = forward * sinH + strafe * cosH;
+
         pose = new Pose2d(
-                pose.position,
-                com.acmerobotics.roadrunner.Rotation2d.exp(
-                        angles.getYaw(AngleUnit.RADIANS)
-                )
+                pose.position.plus(new Vector2d(dx, dy)),
+                heading
         );
     }
 
@@ -158,12 +169,3 @@ public class auto_bluefront extends LinearOpMode {
         return angle;
     }
 }
-
-
-
-
-
-
-
-
-
