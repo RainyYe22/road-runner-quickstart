@@ -18,13 +18,10 @@ import com.acmerobotics.roadrunner.Pose2dDual;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.PoseVelocity2dDual;
 import com.acmerobotics.roadrunner.ProfileAccelConstraint;
-import com.acmerobotics.roadrunner.ProfileParams;
 import com.acmerobotics.roadrunner.Rotation2d;
 import com.acmerobotics.roadrunner.Time;
 import com.acmerobotics.roadrunner.TimeTrajectory;
 import com.acmerobotics.roadrunner.TimeTurn;
-import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
-import com.acmerobotics.roadrunner.TrajectoryBuilderParams;
 import com.acmerobotics.roadrunner.TurnConstraints;
 import com.acmerobotics.roadrunner.Twist2d;
 import com.acmerobotics.roadrunner.Twist2dDual;
@@ -60,7 +57,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 @Config
-public final class MecanumDrive {
+public final class MecanumDrive{
     public static class constants {
         public RevHubOrientationOnRobot.LogoFacingDirection logoFacingDirection =
                 RevHubOrientationOnRobot.LogoFacingDirection.UP;
@@ -462,14 +459,14 @@ public final class MecanumDrive {
     public PoseVelocity2d updatePoseEstimate() {
         PoseVelocity2d vel = localizer.update();
         poseHistory.add(localizer.getPose());
-        
+
         while (poseHistory.size() > 100) {
             poseHistory.removeFirst();
         }
 
         estimatedPoseWriter.write(new PoseMessage(localizer.getPose()));
-        
-        
+
+
         return vel;
     }
 
@@ -489,20 +486,22 @@ public final class MecanumDrive {
 //        c.setStroke("#3F51B5");
 //        c.strokePolyline(xPoints, yPoints);
 //    }
-
-    public TrajectoryActionBuilder actionBuilder(Pose2d beginPose) {
-        return new TrajectoryActionBuilder(
-                TurnAction::new,
-                FollowTrajectoryAction::new,
-                new TrajectoryBuilderParams(
-                        1e-6,
-                        new ProfileParams(
-                                0.25, 0.1, 1e-2
-                        )
-                ),
-                beginPose, 0.0,
-                defaultTurnConstraints,
-                defaultVelConstraint, defaultAccelConstraint
-        );
-    }
+//
+//    public TrajectoryActionBuilder actionBuilder(PoseVelocity2d beginPose) {
+//        TrajectoryActionBuilder trajectoryActionBuilder;
+//        trajectoryActionBuilder = new TrajectoryActionBuilder(
+//                TurnAction::new,
+//                FollowTrajectoryAction::new,
+//                new TrajectoryBuilderParams(
+//                        1e-6,
+//                        new ProfileParams(
+//                                0.25, 0.1, 1e-2
+//                        )
+//                ),
+//                beginPose, 0.0,
+//                defaultTurnConstraints,
+//                defaultVelConstraint, defaultAccelConstraint
+//        );
+//        return trajectoryActionBuilder;
+//    }
 }
