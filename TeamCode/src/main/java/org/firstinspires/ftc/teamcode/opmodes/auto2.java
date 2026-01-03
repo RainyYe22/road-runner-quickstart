@@ -8,7 +8,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.teamcode.subsystems.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.field_constants;
 import org.firstinspires.ftc.teamcode.subsystems.launch;
-import org.firstinspires.ftc.teamcode.subsystems.vision.vision_imu;
 
 @Autonomous(name = "auto2", group = "Autonomous")
 public class auto2 extends LinearOpMode {

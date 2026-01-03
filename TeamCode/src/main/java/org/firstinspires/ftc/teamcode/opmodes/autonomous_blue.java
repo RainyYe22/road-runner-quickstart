@@ -6,7 +6,6 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.teamcode.subsystems.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.field_constants;
-import org.firstinspires.ftc.teamcode.subsystems.vision.vision_imu;
 
 @Autonomous(name = "autonomous_blue")
 public class autonomous_blue extends LinearOpMode {
